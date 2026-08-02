@@ -1,0 +1,9 @@
+[project]
+name = "animetion-studio-v6"
+version = "6.0.0"
+description = "Narration-synced portrait motion graphics with Manim"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
