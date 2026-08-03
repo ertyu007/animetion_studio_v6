@@ -50,8 +50,8 @@ class Layout:
     safe_width: float = 7.8
     safe_top: float = 6.55
     safe_bottom: float = -6.30
-    caption_y: float = -3.20
-    header_y: float = 5.42
+    caption_y: float = -4.00
+    header_y: float = 2.21
 
 
 @dataclass(frozen=True)

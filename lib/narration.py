@@ -24,8 +24,8 @@ class VoiceProfile:
     volume: str = "+0%"
 
 
-THAI_FEMALE = VoiceProfile("th-TH-PremwadeeNeural", rate="-2%")
-THAI_MALE = VoiceProfile("th-TH-NiwatNeural", rate="-4%", pitch="-1Hz")
+THAI_FEMALE = VoiceProfile("th-TH-PremwadeeNeural", rate="-5%", volume="+8%")
+THAI_MALE = VoiceProfile("th-TH-NiwatNeural", rate="-7%", pitch="-2Hz", volume="-5%")
 
 
 @dataclass(frozen=True)

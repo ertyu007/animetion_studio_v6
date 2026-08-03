@@ -1,6 +1,13 @@
 """Episode registry used by CLI and validation."""
 
-EPISODES = {}
+from content.oop_robot_factory import SCRIPT as oop_robot_factory
+
+EPISODES = {
+    episode.key: episode
+    for episode in (
+        oop_robot_factory,
+    )
+}
 
 
 def get_episode(key: str):

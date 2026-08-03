@@ -70,7 +70,11 @@ class ThaiText(Text):
         settings: ProjectSettings = SETTINGS,
         **kwargs,
     ) -> None:
-        candidates = settings.typography.mono_candidates if mono else settings.typography.font_candidates
+        # ฟอนต์ mono (เช่น JetBrains Mono / Fira Code) ไม่มีชุดตัวอักษรไทย
+        # ถ้าข้อความมีตัวอักษรไทยปนอยู่ ให้ใช้ฟอนต์ไทยปกติเสมอ แม้จะขอ mono=True มาก็ตาม
+        # ป้องกันปัญหา tofu box (กล่องเลขฮ่) ที่เกิดกับ KeyCap / MemoryNode / SectionHeader ฯลฯ
+        mono_effective = mono and all(ord(ch) < 128 for ch in text)
+        candidates = settings.typography.mono_candidates if mono_effective else settings.typography.font_candidates
         super().__init__(
             text,
             font=_font(candidates),

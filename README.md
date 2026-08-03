@@ -15,9 +15,7 @@
 
 ## ตอนที่มีในโปรเจกต์
 
-- `print_hello` — เส้นทางของ `print("Hello")`
-- `undo_redo` — Undo / Redo และสอง Stack
-- `python_variables` — ตัวแปร Python เป็นชื่อที่ชี้ไปยัง object
+- `oop_robot_factory` — OOP คืออะไร? เข้าใจด้วยโรงงานหุ่นยนต์
 
 ## ติดตั้งบน Windows PowerShell
 
@@ -66,18 +64,16 @@ python cli.py status undo_redo --strict
 ## Preview
 
 ```powershell
-python cli.py preview print_hello
-python cli.py preview undo_redo
-python cli.py preview python_variables
+python cli.py preview oop_robot_factory
 ```
 
 Preview ใช้ 360×640 ที่ 24 FPS
 
-preview โดยไม่สร้างหรือใช้เสียงจริง (เหมาะสำหรับตรวจ layout และ motion):
+Preview โดยไม่สร้างหรือใช้เสียงจริง (เหมาะสำหรับตรวจ layout และ motion):
 
 ```powershell
 $env:ANIMETION_TTS = "off"
-python cli.py preview undo_redo
+python cli.py preview oop_robot_factory
 Remove-Item Env:ANIMETION_TTS
 ```
 
@@ -85,10 +81,10 @@ Remove-Item Env:ANIMETION_TTS
 
 ```powershell
 # ตรวจจังหวะและ layout ที่ 540×960 ก่อน
-python cli.py render undo_redo --preset draft
+python cli.py render oop_robot_factory --preset draft
 
 # สร้างไฟล์ final สำหรับ TikTok ที่ 1080×1920 / 60 FPS
-python cli.py render undo_redo --preset final
+python cli.py render oop_robot_factory --preset final
 ```
 
 Final ใช้ 1080×1920 ที่ 60 FPS
@@ -100,9 +96,9 @@ python cli.py list
 python cli.py validate all
 python cli.py audio all
 python cli.py status --strict
-python cli.py preview undo_redo
-python cli.py render undo_redo --preset draft
-python cli.py render undo_redo --preset final
+python cli.py preview oop_robot_factory
+python cli.py render oop_robot_factory --preset draft
+python cli.py render oop_robot_factory --preset final
 ```
 
 ## ล้างไฟล์ที่สร้าง
@@ -133,7 +129,7 @@ python cli.py clean all
 ถ้าต้องการให้ episode ใหม่แสดงในคำสั่ง `list`, `preview`, `render` ต้องเพิ่มลงใน [content/registry.py](content/registry.py) โดยทำ 2 ขั้นตอน:
 
 ```python
-from content.my_episode import SCRIPT as `MY_EPISODE`
+from content.oop_robot_factory import SCRIPT as `OOP_ROBOT_FACTORY`
 ```
 
 แล้วใส่ไว้ใน `EPISODES`:
@@ -141,7 +137,7 @@ from content.my_episode import SCRIPT as `MY_EPISODE`
 ```python
 EPISODES = {
     episode.key: episode
-    for episode in (PRINT_HELLO, UNDO_REDO, PYTHON_VARIABLES, PYTHON_MUTABILITY, MY_EPISODE)
+    for episode in (OOP_ROBOT_FACTORY, MY_EPISODE)
 }
 ```
 

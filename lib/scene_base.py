@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Iterable, Optional
 
-from manim import FadeOut, Mobject, MovingCameraScene, UL, VGroup, RIGHT, DOWN
+from manim import FadeOut, Mobject, MovingCameraScene, UL, VGroup, LEFT, RIGHT, DOWN
 
 from lib.components import BlueprintBackground, BrandBar, Caption, ProgressDots
 from lib.narration import EdgeTTSRenderer, NarrationCue, RenderedNarration
@@ -61,7 +61,8 @@ class NarratedPortraitScene(MovingCameraScene):
         self._background = BlueprintBackground(self.settings)
         self.add(self._background)
         self._brand = BrandBar(self.settings)
-        self._brand.to_corner(UL, buff=0.30)
+        self._brand.scale(0.86)
+        self._brand.to_corner(UL, buff=0.42)
         self._brand.set_z_index(300, family=True)
         self.add_foreground_mobjects(self._brand)
         credit = self.add_credit_text()
@@ -72,7 +73,7 @@ class NarratedPortraitScene(MovingCameraScene):
         from lib.components import ThaiText
 
         credit = ThaiText("@ertyu0075", 16, self.settings.palette.muted, mono=True)
-        credit.to_corner(DOWN + RIGHT, buff=0.18)
+        credit.to_corner(DOWN + LEFT, buff=0.28)
         credit.set_z_index(300, family=True)
         return credit
 
@@ -81,7 +82,7 @@ class NarratedPortraitScene(MovingCameraScene):
             self.remove_foreground_mobjects(self._progress)
             self.remove(self._progress)
         self._progress = ProgressDots(total, current, self.settings)
-        self._progress.move_to([0, 7.30, 0])
+        self._progress.move_to([0, 7.78, 0])
         self._progress.set_z_index(300, family=True)
         self.add_foreground_mobjects(self._progress)
 
@@ -115,7 +116,10 @@ class NarratedPortraitScene(MovingCameraScene):
         )
 
         if result.media_path is not None:
-            self.add_sound(str(result.media_path))
+            # Bypass Scene.add_sound: it silently drops audio when
+            # renderer.skip_animations is still True (leftover from cached
+            # partial movies), which would keep only the first cue's sound.
+            self.renderer.file_writer.add_sound(str(result.media_path), self.time, None)
 
         if schedule.lead > 0:
             self.wait(schedule.lead)
