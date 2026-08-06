@@ -82,8 +82,8 @@ class ThaiText(Text):
             color=color or settings.palette.text,
             weight=weight,
             line_spacing=0.82,
-            stroke_width=stroke_width,
-            stroke_color=stroke_color or settings.palette.background,
+        stroke_width=stroke_width,
+        stroke_color=stroke_color or settings.palette.text,
             **kwargs,
         )
         if max_width is not None and self.width > max_width:
@@ -117,24 +117,6 @@ class BrandBar(VGroup):
         title = ThaiText("BYTE MOTION", 18, p.text, BOLD, mono=True)
         group = VGroup(dot, title).arrange(RIGHT, buff=0.12)
         super().__init__(*group)
-
-
-class ProgressDots(VGroup):
-    def __init__(self, total: int, current: int, settings: ProjectSettings = SETTINGS) -> None:
-        p = settings.palette
-        dots = VGroup()
-        for index in range(total):
-            active = index <= current
-            dots.add(
-                Circle(
-                    radius=0.065 if active else 0.05,
-                    stroke_width=0,
-                    fill_color=p.cyan if active else p.border,
-                    fill_opacity=1,
-                )
-            )
-        dots.arrange(RIGHT, buff=0.13)
-        super().__init__(*dots)
 
 
 class SectionHeader(VGroup):
@@ -302,20 +284,16 @@ class MemoryNode(VGroup):
 
 class Caption(VGroup):
     def __init__(self, phrase: str, settings: ProjectSettings = SETTINGS) -> None:
-        p = settings.palette
         clean, highlights = parse_highlights(phrase)
         label = ThaiText(
             wrap_text(clean, 30, 2),
             settings.typography.caption,
-            p.text,
+            settings.palette.text,
             BOLD,
             max_width=6.9,
-            t2c={keyword: p.yellow for keyword in highlights},
+            t2c={keyword: settings.palette.yellow for keyword in highlights},
         )
-        width = min(settings.layout.safe_width, max(2.2, label.width + 0.55))
-        body = RoundedRectangle(width=width, height=max(0.72, label.height + 0.32), corner_radius=0.22, stroke_color=p.border, stroke_width=1.0, fill_color=p.background_soft, fill_opacity=0.96)
-        label.move_to(body)
-        super().__init__(body, label)
+        super().__init__(label)
 
 
 def connector(start: Mobject, end: Mobject, color: str = "muted", settings: ProjectSettings = SETTINGS) -> Arrow:

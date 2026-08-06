@@ -7,7 +7,7 @@ from typing import Iterable, Optional
 
 from manim import FadeOut, Mobject, MovingCameraScene, UL, VGroup, LEFT, RIGHT, DOWN
 
-from lib.components import BlueprintBackground, BrandBar, Caption, ProgressDots
+from lib.components import BlueprintBackground, BrandBar, Caption
 from lib.narration import EdgeTTSRenderer, NarrationCue, RenderedNarration
 from lib.settings import SETTINGS, ProjectSettings
 from lib.sync import make_schedule
@@ -53,11 +53,10 @@ class NarratedPortraitScene(MovingCameraScene):
         self.settings = SETTINGS
         self.narration = EdgeTTSRenderer()
         self.caption = CaptionController(self, self.settings)
-        self._progress: Optional[ProgressDots] = None
         self._background: Optional[BlueprintBackground] = None
         self._brand: Optional[BrandBar] = None
 
-    def build_stage(self, total_sections: int) -> None:
+    def build_stage(self) -> None:
         self._background = BlueprintBackground(self.settings)
         self.add(self._background)
         self._brand = BrandBar(self.settings)
@@ -67,7 +66,6 @@ class NarratedPortraitScene(MovingCameraScene):
         self.add_foreground_mobjects(self._brand)
         credit = self.add_credit_text()
         self.add_foreground_mobjects(credit)
-        self.set_progress(total_sections, 0)
 
     def add_credit_text(self):
         from lib.components import ThaiText
@@ -76,15 +74,6 @@ class NarratedPortraitScene(MovingCameraScene):
         credit.to_corner(DOWN + LEFT, buff=0.28)
         credit.set_z_index(300, family=True)
         return credit
-
-    def set_progress(self, total: int, current: int) -> None:
-        if self._progress is not None:
-            self.remove_foreground_mobjects(self._progress)
-            self.remove(self._progress)
-        self._progress = ProgressDots(total, current, self.settings)
-        self._progress.move_to([0, 7.78, 0])
-        self._progress.set_z_index(300, family=True)
-        self.add_foreground_mobjects(self._progress)
 
     def play_cue(
         self,

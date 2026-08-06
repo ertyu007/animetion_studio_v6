@@ -4,7 +4,7 @@
 
 ## สิ่งที่ออกแบบใหม่
 
-- ดีไซน์ **Neon Blueprint**: พื้นหลังกริดเข้ม การ์ดเส้นเรือง caption แถบเดียว และ progress dots
+- ดีไซน์ **Neon Blueprint**: พื้นหลังกริดเข้ม การ์ดเส้นเรือง caption แถบเดียว
 - ข้อความทั่วไปใช้ `Write` เพื่อวาด stroke ของ glyph
 - โค้ดและ terminal ใช้ `AddTextLetterByLetter` เท่านั้น
 - ไม่มี `VisualPlan`, `narration_beats`, `prepare_for_reveal` หรือการเรียก `get_run_time()`
@@ -16,6 +16,8 @@
 ## ตอนที่มีในโปรเจกต์
 
 - `oop_robot_factory` — OOP คืออะไร? เข้าใจด้วยโรงงานหุ่นยนต์
+- `c_led_blink` — C ควบคุม LED เริ่มต้น
+- `c_variables` — ตัวแปรและชนิดข้อมูล ภาษา C พื้นฐาน
 
 ## ติดตั้งบน Windows PowerShell
 
@@ -56,7 +58,7 @@ python cli.py audio all --force
 
 ```powershell
 python cli.py status
-python cli.py status undo_redo --strict
+python cli.py status oop_robot_factory --strict
 ```
 
 `--strict` จะคืน exit code `1` หากยังมีเสียงที่ขาดอยู่ จึงใช้ตรวจใน workflow อัตโนมัติได้
@@ -129,7 +131,8 @@ python cli.py clean all
 ถ้าต้องการให้ episode ใหม่แสดงในคำสั่ง `list`, `preview`, `render` ต้องเพิ่มลงใน [content/registry.py](content/registry.py) โดยทำ 2 ขั้นตอน:
 
 ```python
-from content.oop_robot_factory import SCRIPT as `OOP_ROBOT_FACTORY`
+from content.oop_robot_factory import SCRIPT as OOP_ROBOT_FACTORY
+from content.c_led_blink import SCRIPT as C_LED_BLINK
 ```
 
 แล้วใส่ไว้ใน `EPISODES`:

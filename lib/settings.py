@@ -12,7 +12,7 @@ class Palette:
     background_soft: str = "#0D1322"
     surface: str = "#121A2A"
     surface_raised: str = "#18243A"
-    border: str = "#2A3955"
+    border: str = "#FEFEFE"
     text: str = "#F5F7FB"
     muted: str = "#C9D2E7"
     cyan: str = "#5DE4C7"
