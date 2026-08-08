@@ -5,5 +5,3 @@ __pycache__/
 .build/
 media/
 *.pyc
-content/
-scenes/

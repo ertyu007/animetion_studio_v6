@@ -1,11 +1,13 @@
 """Episode registry used by CLI and validation."""
 
 from content.cpp_hello_world import SCRIPT as cpp_hello_world
+from content.pointer_deref import SCRIPT as pointer_deref
 
 EPISODES = {
     episode.key: episode
     for episode in (
         cpp_hello_world,
+        pointer_deref,
     )
 }
 

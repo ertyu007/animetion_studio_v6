@@ -11,6 +11,7 @@ import subprocess
 import sys
 
 from content.registry import EPISODES, get_episode
+from lib.copilot import DEFAULT_HOST, DEFAULT_MODEL, CopilotError, generate_episode
 from lib.narration import EdgeTTSRenderer
 from lib.validation import validate_many
 
@@ -177,6 +178,191 @@ def command_scaffold(args: argparse.Namespace) -> int:
     print(f"  3. python cli.py validate {key}")
     print(f"  4. python cli.py audio {key}")
     print(f"  5. python cli.py preview {key}")
+    return 0
+
+
+def _content_from_cues(key: str, title: str, tags, cues) -> str:
+    """Build a content script from a list of {key, text, subtitle_beats} dicts."""
+    lines = [
+        f'"""บทบรรยายและ cue สำหรับตอน {title}."""',
+        "",
+        "from __future__ import annotations",
+        "",
+        "from content.models import Episode",
+        "from lib.narration import NarrationCue",
+        "",
+        "",
+        "SCRIPT = Episode(",
+        f'    key="{key}",',
+        f'    title="{title}",',
+        f'    scene_file="scenes/{key}_scene.py",',
+        f'    scene_class="{_camel_case(key)}V1",',
+        f"    tags={tuple(tags)!r},",
+        "    cues=(",
+    ]
+    for cue in cues:
+        lines.append("        NarrationCue(")
+        lines.append(f'            key="{cue["key"]}",')
+        lines.append(f"            text={cue['text']!r},")
+        lines.append(f"            subtitle_beats={tuple(cue['subtitle_beats'])!r},")
+        lines.append("        ),")
+    lines.append("    ),")
+    lines.append(")")
+    return "\n".join(lines) + "\n"
+
+
+def _scene_from_cues(key: str, class_name: str, cues) -> str:
+    """Build a scene file whose beat count matches each cue's subtitle_beats."""
+    sections = {
+        "hook": "เปิดเรื่อง",
+        "concept": "แนวคิด",
+        "example": "ตัวอย่าง",
+        "summary": "สรุป",
+        "cta": "ติดตาม",
+    }
+    methods = []
+    calls = []
+    for cue in cues:
+        cue_key = cue["key"]
+        label = sections.get(cue_key, cue_key)
+        beat_count = max(1, len(cue["subtitle_beats"]))
+        beats = []
+        for i in range(beat_count):
+            caption = f", caption=cue.subtitle_beats[{i}]" if i < len(cue["subtitle_beats"]) else ""
+            weight = "0.8" if i == 0 else "1.0"
+            anim = "Write(title)" if i == 0 else "FadeIn(panel)"
+            beats.append(f"                beat(lambda: {anim}, weight={weight}{caption}),")
+        methods.append(f"""    def show_{cue_key}(self) -> None:
+        cue = SCRIPT.cue("{cue_key}")
+        title = self.make_text("{label}", size=46, color=YELLOW, weight="BOLD")
+        title.to_edge(UP, buff=2.2)
+        panel = self.make_panel(title="{label}")
+        panel.next_to(title, DOWN, buff=0.5)
+        group = VGroup(title, panel)
+        self.play_cue(
+            cue,
+            (
+{chr(10).join(beats)}
+            ),
+            cleanup=group,
+        )
+""")
+        calls.append(f"        self.show_{cue_key}()\n")
+    return f'''"""Scene สำหรับตอน {key}."""
+
+from __future__ import annotations
+
+from manim import (
+    AnimationGroup,
+    DOWN,
+    FadeIn,
+    RoundedRectangle,
+    Text,
+    UP,
+    VGroup,
+    WHITE,
+    Write,
+    YELLOW,
+)
+
+from content.{key} import SCRIPT
+from lib.scene_base import NarratedScene
+from lib.timeline import beat
+
+
+class {class_name}(NarratedScene):
+    """อธิบาย {key}"""
+
+    def construct(self) -> None:
+        self.build_stage()
+{"".join(calls)}
+    def make_text(self, text: str, *, size: int = 42, color=WHITE, weight: str = "NORMAL") -> Text:
+        return Text(text, font_size=size, color=color, weight=weight)
+
+    def make_panel(self, width: float = 6.6, height: float = 1.8, *, title: str | None = None) -> VGroup:
+        box = RoundedRectangle(width=width, height=height, corner_radius=0.18, stroke_width=2.5, color=YELLOW, fill_opacity=0.08)
+        group = VGroup(box)
+        if title:
+            header = self.make_text(title, size=26, color=YELLOW, weight="BOLD")
+            header.next_to(box.get_top(), DOWN, buff=0.2)
+            group.add(header)
+        return group
+
+{chr(10).join(methods)}
+'''
+
+
+def _normalize_cues(raw_cues) -> list:
+    """Normalize LLM cue list to a fixed 5-cue structure that passes validation."""
+    wanted = ("hook", "concept", "example", "summary", "cta")
+    labels = {"hook": "เปิดเรื่อง", "concept": "แนวคิด", "example": "ตัวอย่าง", "summary": "สรุป", "cta": "ติดตาม"}
+    by_key = {}
+    for cue in raw_cues or []:
+        if isinstance(cue, dict) and cue.get("key"):
+            by_key[str(cue["key"])] = cue
+    normalized = []
+    for key in wanted:
+        cue = by_key.get(key, {})
+        label = labels[key]
+        text = str(cue.get("text", "")).strip().replace("*", "").strip()
+        if not text:
+            text = f"(ยังไม่ได้เขียนเนื้อหาช่วง{label})"
+        if len(text) > 120:
+            text = text[:117].rstrip() + "..."
+        beats = [str(b).strip() for b in cue.get("subtitle_beats", []) if str(b).strip()]
+        beats = [b[:35] if len(b) > 35 else b for b in beats]
+        if not beats:
+            beats = [f"เริ่มช่วง{label}", f"สรุปช่วง{label}"]
+        normalized.append({"key": key, "text": text, "subtitle_beats": beats})
+    return normalized
+
+
+def command_copilot(args: argparse.Namespace) -> int:
+    """Generate an episode skeleton from a topic via local Ollama."""
+    key = _slugify(args.episode)
+    if key in EPISODES:
+        print(f"[ERROR] episode {key!r} already exists")
+        return 1
+    topic = " ".join(args.topic)
+    print(f"[COPILOT] generating episode {key!r} for topic: {topic!r}")
+    print(f"  model={args.model} host={args.host}")
+    try:
+        data = generate_episode(
+            topic,
+            model=args.model,
+            host=args.host,
+            extra_instruction=args.instruction or "",
+        )
+    except CopilotError as exc:
+        print(f"[ERROR] {exc}")
+        return 1
+
+    title = args.title or str(data.get("title") or key.replace("_", " ").title())
+    tags = [str(t) for t in data.get("tags", [])][:5] or ("#CodingThailand", "#เขียนโปรแกรม")
+    cues = _normalize_cues(data.get("cues"))
+    class_name = _camel_case(key) + "V1"
+
+    content_path = ROOT / "content" / f"{key}.py"
+    scene_path = ROOT / "scenes" / f"{key}_scene.py"
+    content_path.write_text(_content_from_cues(key, title, tags, cues), encoding="utf-8")
+    scene_path.write_text(_scene_from_cues(key, class_name, cues), encoding="utf-8")
+    _registry_add(key)
+    print(f"[OK] generated {key!r} ({title}) from LLM")
+    print(f"  created {content_path.relative_to(ROOT)}")
+    print(f"  created {scene_path.relative_to(ROOT)}")
+    print(f"  registered in content/registry.py")
+
+    import importlib
+    import content.registry as registry_module
+    importlib.reload(registry_module)
+    episode = registry_module.EPISODES[key]
+    errors = [issue for issue in validate_many((episode,), ROOT) if issue.level == "ERROR"]
+    if errors:
+        print(f"\n[WARN] generated episode has {len(errors)} validation error(s) to fix:")
+        for issue in errors:
+            print(f"  [{issue.level}] {issue.message}")
+        return 1
+    print("\n[OK] generated episode passes validation")
     return 0
 
 
@@ -430,6 +616,15 @@ def parser() -> argparse.ArgumentParser:
     preflight.add_argument("episode", choices=("all", *EPISODES.keys()))
     preflight.add_argument("--force", action="store_true", help="regenerate narration audio even if cached")
     preflight.set_defaults(func=command_preflight)
+
+    copilot = sub.add_parser("copilot", help="generate an episode skeleton from a topic via local Ollama")
+    copilot.add_argument("episode")
+    copilot.add_argument("topic", nargs="+", help="topic or title of the video, e.g. 'ฟังก์ชันในภาษา C'")
+    copilot.add_argument("--title", default="", help="override the display title from the LLM")
+    copilot.add_argument("--model", default=DEFAULT_MODEL, help=f"Ollama model (default: {DEFAULT_MODEL})")
+    copilot.add_argument("--host", default=DEFAULT_HOST, help=f"Ollama host (default: {DEFAULT_HOST})")
+    copilot.add_argument("--instruction", default="", help="extra constraint/instruction to append to the prompt")
+    copilot.set_defaults(func=command_copilot)
     return result
 
 
