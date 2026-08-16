@@ -183,8 +183,11 @@ def command_scaffold(args: argparse.Namespace) -> int:
 
 def _content_from_cues(key: str, title: str, tags, cues) -> str:
     """Build a content script from a list of {key, text, subtitle_beats} dicts."""
+    # NOTE: title is LLM-controlled, so it must be repr-escaped (like the other
+    # fields) before being interpolated into generated Python source; a raw
+    # embed could otherwise inject arbitrary code into the file that is imported.
     lines = [
-        f'"""บทบรรยายและ cue สำหรับตอน {title}."""',
+        f'"""บทบรรยายและ cue สำหรับตอน {title!r}."""',
         "",
         "from __future__ import annotations",
         "",
@@ -194,7 +197,7 @@ def _content_from_cues(key: str, title: str, tags, cues) -> str:
         "",
         "SCRIPT = Episode(",
         f'    key="{key}",',
-        f'    title="{title}",',
+        f"    title={title!r},",
         f'    scene_file="scenes/{key}_scene.py",',
         f'    scene_class="{_camel_case(key)}V1",',
         f"    tags={tuple(tags)!r},",
@@ -338,6 +341,8 @@ def command_copilot(args: argparse.Namespace) -> int:
         return 1
 
     title = args.title or str(data.get("title") or key.replace("_", " ").title())
+    if len(title) > 80:
+        title = title[:77].rstrip() + "..."
     tags = [str(t) for t in data.get("tags", [])][:5] or ("#CodingThailand", "#เขียนโปรแกรม")
     cues = _normalize_cues(data.get("cues"))
     class_name = _camel_case(key) + "V1"
